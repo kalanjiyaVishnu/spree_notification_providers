@@ -47,8 +47,12 @@ module SpreeNotificationProviders
 
     private
 
+    # Mail appends custom headers rather than replacing them, so a mailer that
+    # sets one after a parent class did has several; the last one wins.
     def header(mail, name)
-      mail.header[name]&.value
+      field = mail.header[name]
+      field = field.last if field.is_a?(Array)
+      field&.value
     end
 
     def template_headers(mail)

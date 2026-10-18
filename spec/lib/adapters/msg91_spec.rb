@@ -89,7 +89,7 @@ RSpec.describe SpreeNotificationProviders::Adapters::Msg91 do
       expect(provider_http_requests.last[:json]).to eq(
         recipients: [{ to: [{ email: 'jo@example.com', name: 'Jo' }], variables: { 'NAME' => 'Jo' } }],
         from: { name: 'Shop', email: 'hello@shop.test' },
-        domain: 'mail.shop.test', template_id: 'welcome', reply_to: [{ email: 'help@shop.test' }]
+        domain: 'shop.test', template_id: 'welcome', reply_to: [{ email: 'help@shop.test' }]
       )
     end
 

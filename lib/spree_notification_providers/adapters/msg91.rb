@@ -77,7 +77,7 @@ module SpreeNotificationProviders
         payload = {
           recipients: recipients,
           from: { name: message.from_name || context.store&.name, email: from_email }.compact,
-          domain: context[:domain].presence || from_email.to_s.split('@').last,
+          domain: sending_domain(message, context),
           template_id: context.template
         }
         reply_to = message.respond_to?(:reply_to) ? message.reply_to : nil
@@ -87,6 +87,13 @@ module SpreeNotificationProviders
         body = Http.parse_json(response.body)
         accepted = body['hasError'] != true && body['status'] != 'fail'
         outcome(response, body, accepted, body.dig('data', 'unique_id') || body['request_id'], context)
+      end
+
+      # The domain of the message's own sender (it must be verified in MSG91),
+      # else the configured sending domain.
+      def sending_domain(message, context)
+        own = message.from_email.to_s.split('@', 2).last if message.from_email.to_s.include?('@')
+        own.presence || context[:domain].presence || context[:default_from_email].to_s.split('@', 2).last
       end
 
       def outcome(response, body, accepted, message_id, context)

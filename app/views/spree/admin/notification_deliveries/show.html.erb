@@ -33,7 +33,7 @@
     </thead>
     <tbody>
       <% @deliveries.each do |delivery| %>
-        <tr id="<%= spree_dom_id(delivery) %>">
+        <tr id="<%= delivery.prefixed_id %>">
           <td><%= delivery.attempt_number %></td>
           <td class="font-mono text-sm"><%= mask_recipient(delivery.recipient) %></td>
           <td><%= SpreeNotificationProviders.provider(delivery.provider_key)&.label || delivery.provider_key || '—' %></td>

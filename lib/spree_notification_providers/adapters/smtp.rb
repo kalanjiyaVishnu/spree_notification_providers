@@ -40,11 +40,17 @@ module SpreeNotificationProviders
 
         if message.from_email
           mail.from = message.from_name ? "#{message.from_name} <#{message.from_email}>" : message.from_email
-        elsif mail.from.blank?
-          mail.from = context[:from_address]
+        elsif mail.from.blank? && (address = default_from(context))
+          mail.from = context.store&.name.present? ? "#{context.store.name} <#{address}>" : address
         end
         mail.reply_to = message.reply_to if message.reply_to
         mail
+      end
+
+      # The from address input, else the SMTP username when it is an address.
+      def default_from(context)
+        context[:from_address].presence ||
+          (context[:username] if context[:username].to_s.match?(InputDefinition::EMAIL_FORMAT))
       end
 
       def smtp_settings(context)
