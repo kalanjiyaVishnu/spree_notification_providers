@@ -6,7 +6,7 @@ All notable changes to this gem are documented here. The format follows
 bump may change the public API described in the README; such changes are listed
 under **Breaking**.
 
-## 0.1.0 — Unreleased
+## 0.1.0 — 2026-10-19
 
 ### Added
 
