@@ -1,0 +1,127 @@
+<% scope = 'spree_notification_providers.admin.deliveries' %>
+<% q = params[:q] || {} %>
+<% content_for :page_title do %>
+  <%= t("#{scope}.title") %>
+<% end %>
+
+<% content_for :page_actions do %>
+  <%= link_to t('spree_notification_providers.admin.providers.title'), spree.admin_notification_providers_path, class: 'btn btn-light' %>
+<% end %>
+
+<p class="text-sm text-gray-500 mb-4">
+  <%= t("#{scope}.intro", days: SpreeNotificationProviders.configuration.delivery_retention_days) %>
+</p>
+
+<div class="card mb-6">
+  <div class="card-body">
+    <%= form_with url: spree.admin_notification_deliveries_path, method: :get, local: true,
+                  class: 'flex flex-wrap items-end gap-3', id: 'delivery-log-filters' do %>
+      <% any = [[t("#{scope}.filters.any"), '']] %>
+      <div class="form-group mb-0">
+        <%= label_tag :q_channel_eq, t("#{scope}.filters.channel") %>
+        <%= select_tag 'q[channel_eq]', options_for_select(any + Spree::NotificationChannelProvider::CHANNELS.map { |c| [notification_channel_label(c), c] }, q[:channel_eq]),
+                       id: 'q_channel_eq', class: 'form-select' %>
+      </div>
+      <div class="form-group mb-0">
+        <%= label_tag :q_provider_key_eq, t("#{scope}.filters.provider") %>
+        <%= select_tag 'q[provider_key_eq]', options_for_select(any + SpreeNotificationProviders.providers.map { |p| [p.label, p.key] }, q[:provider_key_eq]),
+                       id: 'q_provider_key_eq', class: 'form-select' %>
+      </div>
+      <div class="form-group mb-0">
+        <%= label_tag :q_outcome_eq, t("#{scope}.filters.outcome") %>
+        <%= select_tag 'q[outcome_eq]', options_for_select(any + Spree::NotificationDelivery::OUTCOMES.map { |o| [t("spree_notification_providers.outcomes.#{o}"), o] }, q[:outcome_eq]),
+                       id: 'q_outcome_eq', class: 'form-select' %>
+      </div>
+      <div class="form-group mb-0">
+        <%= label_tag :q_message_type_eq, t("#{scope}.filters.message_type") %>
+        <%= select_tag 'q[message_type_eq]', options_for_select(any + SpreeNotificationProviders.message_types.map { |m| [m.label, m.key] }, q[:message_type_eq]),
+                       id: 'q_message_type_eq', class: 'form-select' %>
+      </div>
+      <div class="form-group mb-0">
+        <%= label_tag :q_created_at_gteq, t("#{scope}.filters.from") %>
+        <%= date_field_tag 'q[created_at_gteq]', q[:created_at_gteq], id: 'q_created_at_gteq', class: 'form-control' %>
+      </div>
+      <div class="form-group mb-0">
+        <%= label_tag :q_created_at_lteq, t("#{scope}.filters.to") %>
+        <%= date_field_tag 'q[created_at_lteq]', q[:created_at_lteq], id: 'q_created_at_lteq', class: 'form-control' %>
+      </div>
+      <label class="inline-flex items-center gap-1 mb-2">
+        <%= check_box_tag 'q[bulk_eq]', 'true', q[:bulk_eq] == 'true', id: 'q_bulk_eq' %>
+        <%= t("#{scope}.filters.bulk") %>
+      </label>
+      <div class="flex items-center gap-2">
+        <%= submit_tag t("#{scope}.filters.apply"), name: nil, class: 'btn btn-primary' %>
+        <%= link_to Spree.t(:clear), spree.admin_notification_deliveries_path, class: 'btn btn-light' if q.values.any?(&:present?) %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="card-lg">
+  <% if @groups.any? %>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col"><%= t("#{scope}.columns.time") %></th>
+            <th scope="col"><%= t("#{scope}.columns.channel") %></th>
+            <th scope="col"><%= t("#{scope}.columns.type") %></th>
+            <th scope="col"><%= t("#{scope}.columns.recipient") %></th>
+            <th scope="col"><%= t("#{scope}.columns.attempts") %></th>
+            <th scope="col"><%= t("#{scope}.columns.outcome") %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @groups.each do |group| %>
+            <% first = group.first %>
+            <tr id="delivery-<%= group.message_ref %>">
+              <td class="whitespace-nowrap text-sm">
+                <%= link_to l(first.created_at, format: :short), spree.admin_notification_delivery_path(group.message_ref), class: 'text-primary hover:underline' %>
+              </td>
+              <td><%= notification_channel_label(first.channel) %></td>
+              <td class="text-sm"><%= SpreeNotificationProviders.message_type(first.message_type)&.label || first.message_type %></td>
+              <td class="text-sm font-mono">
+                <% if group.bulk? %>
+                  <%= t("#{scope}.bulk_recipients", count: group.bulk_counts.values.sum) %>
+                <% else %>
+                  <%= mask_recipient(first.recipient) %>
+                <% end %>
+              </td>
+              <td class="text-sm">
+                <% if group.bulk? %>
+                  <%= SpreeNotificationProviders.provider(first.provider_key)&.label || first.provider_key || '—' %>
+                <% else %>
+                  <ol class="space-y-1">
+                    <% group.attempts.each do |attempt| %>
+                      <li>
+                        <%= SpreeNotificationProviders.provider(attempt.provider_key)&.label || attempt.provider_key || '—' %>
+                        <%= notification_status_badge(attempt.outcome) %>
+                        <% if attempt.reason.present? %><span class="text-xs text-gray-500"><%= attempt.reason %></span><% end %>
+                      </li>
+                    <% end %>
+                  </ol>
+                <% end %>
+              </td>
+              <td>
+                <% if group.bulk? %>
+                  <% group.bulk_counts.each do |outcome, count| %>
+                    <div><%= notification_status_badge(outcome) %> <span class="text-xs"><%= count %></span></div>
+                  <% end %>
+                <% else %>
+                  <%= notification_status_badge(group.final.outcome) %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <div class="flex justify-between p-4">
+      <%= link_to '← ' + Spree.t(:previous), url_for(request.query_parameters.merge(page: @pagy.previous)), class: 'btn btn-light btn-sm' if @pagy.previous %>
+      <span></span>
+      <%= link_to Spree.t(:next) + ' →', url_for(request.query_parameters.merge(page: @pagy.next)), class: 'btn btn-light btn-sm' if @pagy.next %>
+    </div>
+  <% else %>
+    <div class="card-body text-sm text-gray-500"><%= t("#{scope}.empty") %></div>
+  <% end %>
+</div>

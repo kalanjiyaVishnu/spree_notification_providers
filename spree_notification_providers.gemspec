@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'acts_as_list', '>= 1.0'
-  spec.add_dependency 'pagy', '>= 9.0'
+  spec.add_dependency 'pagy', '>= 43.0'
   spec.add_dependency 'rails', '>= 8.0'
   spec.add_dependency 'ransack', '>= 4.0'
   spec.add_dependency 'spree_admin', '>= 5.5'

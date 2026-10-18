@@ -1,0 +1,51 @@
+<%# locals: (input:, record:, field_prefix:, secret_prefix:, clear_key:, errors: {}) %>
+<% field_id = "#{field_prefix.parameterize(separator: '_')}_#{input.key}" %>
+<% error = errors[input.key] %>
+<div class="form-group">
+  <%= label_tag field_id do %>
+    <%= input.label %><% if input.required? %> <span class="text-red-600" aria-hidden="true">*</span><% end %>
+  <% end %>
+
+  <% if input.secret? %>
+    <% stored = record.raw_value(input) %>
+    <%= password_field_tag "#{secret_prefix}[#{input.key}]", nil,
+                           id: field_id, class: "form-control #{'is-invalid' if error}",
+                           autocomplete: 'new-password',
+                           placeholder: (stored.present? ? t('spree_notification_providers.admin.configure.secret_placeholder') : nil) %>
+    <div class="text-xs text-gray-500 mt-1 flex items-center gap-3">
+      <span>
+        <%= stored.present? ? t('spree_notification_providers.admin.configure.secret_set', hint: secret_hint(stored)).strip : t('spree_notification_providers.admin.configure.secret_not_set') %>
+      </span>
+      <% if stored.present? %>
+        <label class="inline-flex items-center gap-1">
+          <%= check_box_tag "#{clear_key}[]", input.key, false, id: "#{field_id}_clear" %>
+          <%= t('spree_notification_providers.admin.configure.clear') %>
+        </label>
+      <% end %>
+    </div>
+  <% else %>
+    <% value = record.raw_value(input) %>
+    <% case input.type %>
+    <% when :select %>
+      <%= select_tag "#{field_prefix}[#{input.key}]",
+                     options_for_select(Array(input.options).map { |o| [o.to_s.humanize, o] }, value || input.default),
+                     id: field_id, class: "form-select #{'is-invalid' if error}" %>
+    <% when :boolean %>
+      <%= select_tag "#{field_prefix}[#{input.key}]",
+                     options_for_select([[Spree.t(:say_yes), 'true'], [Spree.t(:say_no), 'false']], (value || input.default).to_s),
+                     id: field_id, class: "form-select #{'is-invalid' if error}" %>
+    <% else %>
+      <%= text_field_tag "#{field_prefix}[#{input.key}]", value,
+                         id: field_id, class: "form-control #{'is-invalid' if error}",
+                         placeholder: input.default,
+                         inputmode: (input.type == :integer || input.type == :phone ? 'numeric' : nil) %>
+    <% end %>
+  <% end %>
+
+  <% if error %>
+    <div class="text-xs text-red-600 mt-1"><%= input.label %> <%= error %></div>
+  <% end %>
+  <% if input.help.present? %>
+    <div class="text-xs text-gray-500 mt-1"><%= input.help %></div>
+  <% end %>
+</div>

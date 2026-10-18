@@ -1,0 +1,114 @@
+<% scope = 'spree_notification_providers.admin.providers' %>
+<% content_for :page_title do %>
+  <%= t("#{scope}.title") %>
+<% end %>
+
+<% content_for :page_actions do %>
+  <%= link_to t("#{scope}.delivery_log"), spree.admin_notification_deliveries_path(q: { channel_eq: @channel }), class: 'btn btn-light' %>
+<% end %>
+
+<p class="text-sm text-gray-500 mb-4"><%= t("#{scope}.intro") %></p>
+
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex space-x-8" aria-label="Channels">
+    <% Spree::NotificationChannelProvider::CHANNELS.each do |channel| %>
+      <% active = channel == @channel %>
+      <%= link_to notification_channel_label(channel),
+                  spree.admin_notification_providers_path(channel: channel),
+                  id: "channel-tab-#{channel}",
+                  'aria-current': (active ? 'page' : nil),
+                  class: "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm #{active ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}" %>
+    <% end %>
+  </nav>
+</div>
+
+<div class="card-lg mb-6">
+  <% if @entries.any? %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col" class="w-5"></th>
+          <th scope="col"><%= t('spree_notification_providers.admin.deliveries.columns.provider') %></th>
+          <th scope="col"><%= Spree.t(:status) %></th>
+          <th scope="col" class="text-center"><%= t("#{scope}.enabled") %></th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody data-controller="sortable" data-sortable-handle-value=".move-handle"
+             data-sortable-resource-name-value="notification_channel_provider">
+        <% @entries.each do |entry| %>
+          <% status = entry.status %>
+          <tr id="<%= spree_dom_id(entry) %>"
+              data-sortable-update-url="<%= spree.position_admin_notification_channel_provider_path(entry) %>">
+            <td class="w-5 text-center <%= 'move-handle cursor-move' if @entries.size > 1 %>"
+                title="<%= t("#{scope}.drag_to_reorder") if @entries.size > 1 %>">
+              <% if @entries.size > 1 %>
+                <%= icon('grip-vertical', class: 'rounded-md hover:bg-gray-100 p-2') %>
+              <% else %>
+                <span class="text-gray-400 text-sm"><%= entry.position %></span>
+              <% end %>
+            </td>
+            <td>
+              <div class="font-medium"><%= entry.definition&.label || entry.provider_key.titleize %></div>
+              <% if entry.shared_with_channels.size > 1 %>
+                <div class="text-xs text-gray-500">
+                  <%= t('spree_notification_providers.admin.configure.shared_used_by',
+                        channels: entry.shared_with_channels.map { |c| notification_channel_label(c) }.to_sentence) %>
+                </div>
+              <% end %>
+            </td>
+            <td>
+              <%= notification_status_badge(status) %>
+              <% missing = entry.missing_inputs %>
+              <% if missing.any? %>
+                <div class="text-xs text-amber-700 mt-1"><%= t("#{scope}.missing", inputs: missing.join(', ')) %></div>
+              <% end %>
+            </td>
+            <td class="text-center">
+              <%= form_with url: spree.admin_notification_channel_provider_path(entry), method: :patch, local: true do %>
+                <%= hidden_field_tag 'entry[enabled]', entry.enabled? ? '0' : '1' %>
+                <%= hidden_field_tag :return_to, 'index' %>
+                <button type="submit" role="switch" aria-checked="<%= entry.enabled? %>"
+                        aria-label="<%= t("#{scope}.enabled") %>"
+                        class="btn btn-sm <%= entry.enabled? ? 'btn-primary' : 'btn-light' %>">
+                  <%= entry.enabled? ? Spree.t(:say_yes) : Spree.t(:say_no) %>
+                </button>
+              <% end %>
+            </td>
+            <td class="text-right whitespace-nowrap">
+              <%= link_to t("#{scope}.configure"), spree.edit_admin_notification_channel_provider_path(entry), class: 'btn btn-light btn-sm' %>
+              <%= link_to t("#{scope}.remove"), spree.admin_notification_channel_provider_path(entry),
+                          class: 'btn btn-light btn-sm text-red-600',
+                          data: { turbo_method: :delete,
+                                  turbo_confirm: t("#{scope}.remove_confirm",
+                                                   provider: entry.definition&.label || entry.provider_key,
+                                                   channel: notification_channel_label(entry.channel)) } %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div class="card-body text-sm text-gray-500"><%= t("#{scope}.none_added") %></div>
+  <% end %>
+</div>
+
+<% if @available.any? %>
+  <h6 class="pb-2"><%= t("#{scope}.available") %></h6>
+  <div class="card-lg">
+    <table class="table">
+      <tbody>
+        <% @available.each do |definition| %>
+          <tr id="available-<%= definition.key %>">
+            <td class="font-medium"><%= definition.label %></td>
+            <td class="text-right">
+              <%= button_to t("#{scope}.add"), spree.admin_notification_channel_providers_path,
+                            params: { channel: @channel, provider_key: definition.key },
+                            class: 'btn btn-primary btn-sm', form: { class: 'inline' } %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

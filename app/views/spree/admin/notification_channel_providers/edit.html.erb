@@ -1,0 +1,118 @@
+<% scope = 'spree_notification_providers.admin.configure' %>
+<% provider_label = @entry.definition&.label || @entry.provider_key.titleize %>
+<% channel_label = notification_channel_label(@entry.channel) %>
+<% content_for :page_title do %>
+  <%= t("#{scope}.title", provider: provider_label, channel: channel_label) %>
+<% end %>
+
+<% content_for :page_actions do %>
+  <%= link_to t("#{scope}.back"), spree.admin_notification_providers_path(channel: @entry.channel), class: 'btn btn-light' %>
+<% end %>
+
+<div class="grid grid-cols-12 gap-6">
+  <div class="col-span-12 lg:col-span-8">
+    <% if @entry.definition.nil? %>
+      <div class="alert alert-danger mb-4">
+        <%= t('spree_notification_providers.statuses.unavailable') %>: <%= @entry.provider_key %>
+      </div>
+    <% else %>
+      <% missing = @entry.missing_inputs %>
+      <div class="mb-4 flex items-center gap-2">
+        <%= notification_status_badge(@entry.status) %>
+        <% if missing.any? %>
+          <span class="text-sm text-amber-700"><%= t('spree_notification_providers.admin.providers.missing', inputs: missing.join(', ')) %></span>
+        <% end %>
+      </div>
+
+      <%= form_with url: spree.admin_notification_channel_provider_path(@entry), method: :patch, local: true,
+                    id: 'notification-provider-form' do %>
+        <div class="card mb-6">
+          <div class="card-body flex items-center justify-between">
+            <label for="entry_enabled" class="font-medium mb-0"><%= t('spree_notification_providers.admin.providers.enabled') %></label>
+            <%= hidden_field_tag 'entry[enabled]', '0', id: nil %>
+            <%= check_box_tag 'entry[enabled]', '1', @entry.enabled?, id: 'entry_enabled' %>
+          </div>
+        </div>
+
+        <% if @entry.shared_inputs.any? %>
+          <div class="card mb-6">
+            <div class="card-header">
+              <h5 class="card-title"><%= t("#{scope}.shared_header") %></h5>
+            </div>
+            <div class="card-body space-y-4">
+              <p class="text-xs text-gray-500">
+                <%= t("#{scope}.shared_used_by",
+                      channels: (@entry.shared_with_channels | [@entry.channel]).map { |c| notification_channel_label(c) }.to_sentence) %>
+              </p>
+              <% @entry.shared_inputs.each do |input| %>
+                <%= render 'input_field', input: input, record: @entry.provider_config,
+                                          field_prefix: 'entry[shared_settings]', secret_prefix: 'entry[shared_secret_settings]',
+                                          clear_key: 'entry[clear_shared_secrets]', errors: @config_errors || {} %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @entry.channel_inputs.any? %>
+          <div class="card mb-6">
+            <div class="card-header">
+              <h5 class="card-title"><%= t("#{scope}.channel_header", channel: channel_label) %></h5>
+            </div>
+            <div class="card-body space-y-4">
+              <% @entry.channel_inputs.each do |input| %>
+                <%= render 'input_field', input: input, record: @entry,
+                                          field_prefix: 'entry[settings]', secret_prefix: 'entry[secret_settings]',
+                                          clear_key: 'entry[clear_secrets]', errors: @entry.input_errors %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @entry.template_capable? %>
+          <div class="card mb-6">
+            <div class="card-header">
+              <h5 class="card-title"><%= t("#{scope}.templates_header") %></h5>
+            </div>
+            <div class="card-body space-y-4">
+              <p class="text-xs text-gray-500"><%= t("#{scope}.templates_help") %></p>
+              <% SpreeNotificationProviders.message_types_for(@entry.channel).each do |type| %>
+                <div class="form-group">
+                  <%= label_tag "entry_templates_#{type.key}", type.label %>
+                  <%= text_field_tag "entry[templates][#{type.key}]", @entry.templates.to_h[type.key.to_s],
+                                     id: "entry_templates_#{type.key}", class: 'form-control font-mono text-sm' %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="flex justify-end">
+          <%= submit_tag t("#{scope}.save"), class: 'btn btn-primary' %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="col-span-12 lg:col-span-4">
+    <% if @entry.definition %>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title"><%= t("#{scope}.test_header") %></h5>
+        </div>
+        <div class="card-body">
+          <p class="text-xs text-gray-500 mb-3"><%= t("#{scope}.test_help") %></p>
+          <%= form_with url: spree.test_admin_notification_channel_provider_path(@entry), method: :post, local: true,
+                        id: 'notification-provider-test-form' do %>
+            <div class="form-group">
+              <% label = @entry.channel == 'email' ? t("#{scope}.test_to_email") : t("#{scope}.test_to_phone") %>
+              <%= label_tag :test_to, label %>
+              <%= (@entry.channel == 'email' ? method(:email_field_tag) : method(:telephone_field_tag))
+                    .call(:to, nil, id: 'test_to', class: 'form-control', required: true) %>
+            </div>
+            <%= submit_tag t("#{scope}.test_send"), class: 'btn btn-light w-full' %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
