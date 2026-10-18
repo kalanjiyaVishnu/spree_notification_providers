@@ -39,4 +39,8 @@ RSpec.configure do |config|
   end
 end
 
-Dir[File.expand_path('../factories/**/*.rb', __dir__)].each { |file| require file }
+# The host app does not load engine factories itself; a standalone run (and
+# apps using this gem's helpers) may already have them through factory_bot.
+unless FactoryBot.factories.registered?(:notification_provider_config)
+  Dir[File.expand_path('../factories/**/*.rb', __dir__)].each { |file| require file }
+end

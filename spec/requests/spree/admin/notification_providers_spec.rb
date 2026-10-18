@@ -154,6 +154,7 @@ RSpec.describe 'Admin notification providers', type: :request do
 
   describe 'authorization' do
     it 'requires a signed-in admin' do
+      skip 'needs the host app\'s admin authentication' unless defined?(Devise)
       Warden.test_reset!
 
       get '/admin/notification_providers'

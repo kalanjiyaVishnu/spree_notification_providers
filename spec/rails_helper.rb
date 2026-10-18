@@ -8,6 +8,28 @@ require File.expand_path('dummy/config/environment', __dir__)
 require 'rspec/rails'
 require 'spree_dev_tools/rspec/spec_helper'
 
+# Fixed keys so encrypted provider secrets work in the dummy app's tests.
+ActiveRecord::Encryption.configure(
+  primary_key: 'test_primary_key_32_characters_12',
+  deterministic_key: 'test_deterministic_key_32_char_1',
+  key_derivation_salt: 'test_key_derivation_salt_32_ch_1'
+)
+
+# The dummy app has no Devise/Warden; specs written for the host's
+# `login_as(user, scope: :admin_user)` sign in by stubbing the admin
+# controllers' current user instead.
+module StandaloneAdminLogin
+  def login_as(user, scope: nil) # rubocop:disable Lint/UnusedMethodArgument
+    allow_any_instance_of(Spree::Admin::BaseController).to receive(:try_spree_current_user).and_return(user)
+  end
+end
+unless defined?(Warden)
+  module Warden
+    def self.test_reset!; end
+  end
+end
+RSpec.configure { |config| config.include StandaloneAdminLogin, type: :request }
+
 Dir[File.expand_path('support/**/*.rb', __dir__)].each { |file| require file }
 
 RSpec.configure do |config|

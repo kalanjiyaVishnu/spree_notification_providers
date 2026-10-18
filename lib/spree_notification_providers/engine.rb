@@ -39,6 +39,8 @@ module SpreeNotificationProviders
     return unless Spree.respond_to?(:admin) && Spree.admin.respond_to?(:navigation)
 
     nav = Spree.admin.navigation
+    return if nav.nil?
+
     nav.settings.add :notification_providers,
                      label: :notification_providers,
                      icon: 'send',

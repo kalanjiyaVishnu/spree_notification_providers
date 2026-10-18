@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require 'spree/core'
+# Loaded first so its after_initialize (which creates the admin navigation)
+# runs before ours registers menu entries.
+require 'spree_admin'
 require 'securerandom'
 
 require 'spree_notification_providers/version'

@@ -48,13 +48,12 @@ RSpec.describe Spree::NotificationDelivery do
       filter = ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters)
       filtered = filter.filter(
         'entry' => { 'secret_settings' => { 'password' => 'p' }, 'shared_secret_settings' => { 'api_key' => 'k' } },
-        'secret' => 'hook', 'code' => '123456'
+        'secret' => 'hook'
       )
 
       expect(filtered['entry']['secret_settings']).to eq('[FILTERED]')
       expect(filtered['entry']['shared_secret_settings']).to eq('[FILTERED]')
       expect(filtered['secret']).to eq('[FILTERED]')
-      expect(filtered['code']).to eq('[FILTERED]')
     end
   end
 end

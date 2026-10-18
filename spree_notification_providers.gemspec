@@ -38,7 +38,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'spree_core', '>= 5.5'
 
   spec.homepage = 'https://github.com/ontodi/spree_notification_providers'
-  spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = spec.homepage
   spec.metadata['changelog_uri'] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata['rubygems_mfa_required'] = 'true'
